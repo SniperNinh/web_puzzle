@@ -1,20 +1,18 @@
+### Script for solving the "puzzle" challenges from L3AK ctf 2025
+The challenge was made by Sylv1e
 
 
 
 
+## Requirements
+- Python 3 (made for python 3.11)
+- Python Modules:
+  - numpy
+  - PIL, aka pillow
+  - os
+  - base64
+  - math
 
 
 
 
-
-
-
-## Scripts
-1. script.py - Main script
-    - Input:
-        - html page for the puzzle
-        - source image
-        - tiling
-    runs html_to_tiles.py and returns the 
-2. html_to_tiles.py
-    - Takes the html of the puzzle and creates a folder with the tiles as png files named "{index}.png"

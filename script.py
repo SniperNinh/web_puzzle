@@ -11,27 +11,6 @@ import math
 # The puzzle htm/html files has to be downloaded to .../puzzle_html_files/
 
 
-## TODO code
-# - TODO; find border color (check most common first color)
-# - TODO; find border size
-#   1. find peice with topleft & bottomleft corners = border color
-#   2. check amount of pixels = border color in top row
-# - DONE; take account for border_size
-#   1. crop the source image
-#   2. fill the border around the image
-
-## script step process:
-# 1) download the html for the puzzle
-# 2) run the html -> tiles script
-# 3) get the source image 
-# *) run the main script:
-# 1. Inputs; 
-#   - image tiling, eg. 4x4, 12x12, 32x32
-#   - puzzle name (for getting the files)
-# 2. find border color & size
-# 3. crop source image and add border
-# 4. solve the puzzle (danish wizardry)
-
 
 ## HTML TO PNG FILES
 
@@ -72,7 +51,8 @@ for line in puzzle_html:
                 base64_image = image_line.strip().removeprefix('base64,')[:image_line.find('"')-1]
                 decoded_image = base64.b64decode(base64_image.encode("ascii"))
                 
-                image_file_name = f"{image_line.strip()[image_line.strip().find('n="')+3:-2]}.png"
+                image_file_name = f"{image_line.strip()[image_line.strip().find('n=')+3:-2]}.png"
+                
                 with open(f"puzzle_images/{puzzle_title}/{image_file_name}", "wb") as f:
                     f.write(decoded_image)
                     f.close()
@@ -115,7 +95,6 @@ for color in common_colors.keys():
 border_size = 0
 for n, tile in enumerate(tiles):
     if str(tile[0][0]) == border_color_string and str(tile[-1][0]) == border_color_string and str(tile[0][-1]) != border_color_string:
-        print("scubiee", n)
         for pixel in tile[0]:
             if str(pixel) == border_color_string:
                 border_size += 1
@@ -142,16 +121,30 @@ else:
     print(f"Could not find Source Image, Looked for: .../puzzle_images/{puzzle_title}.png / .jpg")
     exit()
 
+if 0.8 < tiles[0].shape[0]*tiles_vert / source_image.shape[0] and tiles[0].shape[0]*tiles_vert / source_image.shape[0] < 1.2:
+    pass
+else:
+    print("Source image size diverts largely from expected size")
+    print(f"Source size:   {source_image.shape[0]}:{source_image.shape[1]}")
+    print(f"expected size: {tiles[0].shape[0]*tiles_vert}:{tiles[0].shape[1]*tiles_hori}")
+    bool_resize_input = input("resize source_image to expected size? [y/N]")
+    if bool_resize_input == "y":
+        source_image = np.asarray(ImageOps.contain(Image.fromarray(source_image), tuple([tiles[0].shape[1]*tiles_hori, tiles[0].shape[0]*tiles_vert])))
+    
+
 cropped_source_image = source_image[0:int(tiles[0].shape[0]*tiles_vert-border_size*2), 0:int(tiles[0].shape[1]*tiles_hori-border_size*2),:]
 
 bordered_source_image = np.asarray(ImageOps.expand(Image.fromarray(cropped_source_image), border_size, tuple(border_color)))
 
-print(border_size)
+## 
+Image.fromarray(bordered_source_image).save("bordered_test.png")
 
-#Image.fromarray(bordered_source_image).save("hummiiee.png")
+# print(border_size)
+
+
 
 ## SOLVE PUZZLE
-# DaWiz, aka Danish Wisard was the brains behind the solving part
+# DaWiz, aka Danish Wisard was the big brain behind the solving part of the script, credits goes to him
 
 indexes = [-1 for _ in range(tiles_vert*tiles_hori)]
 
@@ -166,13 +159,23 @@ for n,tile in enumerate(tiles):
             if diff < min_val:
                 min_val = diff
                 best = (i,j)
-    """if n == 3:
-        print(abs(np.sum(bordered_source_image[2*t_h:(2+1)*t_h,1*t_w:(1+1)*t_w,:3] - tile)))
-        Image.fromarray(bordered_source_image[2*t_h:(2+1)*t_h,1*t_w:(1+1)*t_w,:3]).save("helpppppp.png")
-    print(n, ":", min_val)
+    if n == 12:
+        print(abs(np.sum(bordered_source_image[3*t_h:(3+1)*t_h,3*t_w:(3+1)*t_w,:3] - tile)))
+        print(abs(np.sum(bordered_source_image[best[0]*t_h:(best[0]+1)*t_h,best[1]*t_w:(best[1]+1)*t_w,:3] - tile)))
+        print("i", i, ": j", j, " index ", best[0] * tiles_vert + best[1])
+        Image.fromarray(tile).save("wtffff.png")
+        Image.fromarray(bordered_source_image[best[0]*t_h:(best[0]+1)*t_h,best[1]*t_w:(best[1]+1)*t_w,:3]).save("idkkkkk.png")
+        Image.fromarray(bordered_source_image[3*t_h:(3+1)*t_h,3*t_w:(3+1)*t_w,:3]).save("confus.png")
+    
+    #print(n, ":", min_val)
+    
     if indexes[best[0] * tiles_hori + best[1]] != -1:
-        print(indexes[best[0] * tiles_hori + best[1]], "->", n, "at", best[0], ",", best[1])"""
-    indexes[best[0] * tiles_hori + best[1]] = n
+        print(indexes[best[0] * tiles_hori + best[1]], "->", n, "at", best[0], ",", best[1])
+    indexes[best[0] * tiles_vert + best[1]] = n
 
 
 print(indexes)
+
+for n, ind in enumerate(indexes):
+    if ind == -1:
+        print(f"missing at {n//tiles_vert}, {n%tiles_vert}")
